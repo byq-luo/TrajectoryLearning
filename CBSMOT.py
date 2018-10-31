@@ -7,9 +7,9 @@ Created on Sat Apr 21 21:17:56 2018
 
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
 from numba import jit
 np.random.seed(2018)
+
 ###############################################################################
 class CBSMOT(object):
     def __init__(self, traj=None, eps=10, minPoints=5, angleThreshold=90):
