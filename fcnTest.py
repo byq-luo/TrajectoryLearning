@@ -35,6 +35,8 @@ def load_data():
 
 def traj_angle_calculation(traj):
     trajLength = len(traj)
+    
+    # Prevetn error input data file
     if trajLength <= 5:
         traj["angle"] = 0
         return traj
@@ -72,7 +74,7 @@ def traj_angle_calculation(traj):
     return angle
         
 if __name__ == "__main__":
-    trajData, trajDataFeatures = load_data()
+    #trajData, trajDataFeatures = load_data()
     traj = trajData[4836]
     angle = traj_angle_calculation(traj)
     

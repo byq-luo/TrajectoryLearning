@@ -23,15 +23,11 @@ class CBSMOT(object):
         
         self._eps = eps
         self._minPoints = minPoints
+        
         self._sampleNums = self._traj.shape[0]
         self._clusterId = np.zeros((self._sampleNums, ))
         self._clusterId[:] = -100
         self._index = np.arange(self._sampleNums)
-        
-        CBSMOT.eps = 5
-        CBSMOT.minTime = 10
-        self._distArray = np.sqrt(np.square(self._X[:-1] - self._X[1:]) + np.square(self._Y[:-1] - self._Y[1:]))
-        self._distCumSum = self._distArray.cumsum()
         
     def _eps_query(self, pointId):
         pass
@@ -40,6 +36,7 @@ class CBSMOT(object):
         distArray = np.sqrt(np.square(self._X - self._X[pointId]) +
                             np.square(self._Y - self._Y[pointId]))
         index = self._index[distArray < self._eps]
+        
         return index
     
     @jit
@@ -48,7 +45,7 @@ class CBSMOT(object):
         # 若是返回的index长度和样本数一样，说明RangeQuery失败，抛出AssertError
         index = self._range_query(pointId)
         
-        #assert len(index) == self._sampleNums
+        angleCond
         if len(index) < self._minPoints:
             self._clusterId[pointId] = -1
             return False
@@ -83,7 +80,11 @@ class CBSMOT(object):
             else:
                 continue
         return self._clusterId
-    
+
+if __name__ == "__main__":
+    trajData, trajDataFeatures = load_data()
+    traj = trajData[4836]
+
 '''
 m = np.array([[1, 1.2, 0.8, 3.7, 3.9, 3.6, 10], [1.1, 0.8, 1, 4, 3.9, 4.1, 10]])
 m = m.T
