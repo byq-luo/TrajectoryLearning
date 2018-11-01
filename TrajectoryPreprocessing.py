@@ -94,16 +94,19 @@ class TrajectoryFeatureExtract(object):
     def save_data(self, data=None, fileName=None):
         assert fileName, "Invalid file path !"
         self.__save_data(data, fileName)
+        
     def load_data(self, fileName=None):
         assert fileName, "Invalid file path !"
         data = self.__load_data(fileName)
         return data
+    
     def __save_data(self, data=None, fileName=None):
         print("--------------Start saving--------------")
         f = open(fileName, "wb")
         pickle.dump(data, f)
         f.close()
         print("--------------Saving successed !--------------\n")
+        
     def __load_data(self, fileName=None):
         print("--------------Start loading--------------")
         f = open(fileName, 'rb')
