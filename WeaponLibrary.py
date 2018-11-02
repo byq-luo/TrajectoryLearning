@@ -117,7 +117,7 @@ def plot_random_n_traj(n, trajData):
     plt.imshow(background)
     for index, item in enumerate(ind):
         i = trajInd[item]
-        plt.plot(trajData[i]["X"], trajData[i]["Y"], "r-o", markersize=3)
+        plt.plot(trajData[i]["X"], trajData[i]["Y"], "r.", markersize=3)
     plt.axis('off')
 
 def plot_list_traj(index, trajData):

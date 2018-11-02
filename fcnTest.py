@@ -17,7 +17,7 @@ from math import acos, pi
 from WeaponLibrary import LoadSave
 from WeaponLibrary import timefn
 from WeaponLibrary import load_background
-from WeaponLibrary import plot_list_traj
+from WeaponLibrary import plot_list_traj, plot_random_n_traj
 np.random.seed(1)
 sns.set(style="ticks", font_scale=1.2, palette='dark', color_codes=True)
 background = load_background()
@@ -25,7 +25,7 @@ from CBSMOT import CBSMOT
 ###############################################################################
 def load_data():
     FEATURE_PATH = "..//Data//Original//TrajectoryDataFeatures.pkl"
-    TRAJDATA_PATH = "..//Data//Original//TrajectoryDataOriginal.pkl"
+    TRAJDATA_PATH = "..//Data//trajAll.pkl"
     
     ls = LoadSave(FEATURE_PATH)
     trajDataFeatures = ls.load_data()
@@ -74,7 +74,7 @@ def traj_angle_calculation(traj):
     return angle
         
 if __name__ == "__main__":
-    #trajData, trajDataFeatures = load_data()
-    traj = trajData[4836]
-    angle = traj_angle_calculation(traj)
+    trajData, trajDataFeatures = load_data()
+    #traj = trajData[4836]
+    #angle = traj_angle_calculation(traj)
     

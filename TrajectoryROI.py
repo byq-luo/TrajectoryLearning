@@ -26,6 +26,10 @@ np.random.seed(2018)
 sns.set(style="ticks", font_scale=1.2, color_codes=True)
 background = load_background()
 ###############################################################################
+def core_points_discovery():
+    pass
+
+
 class InterestedRegionDiscovery(object):
     def __init__(self, trajDataFeatures=None, save=False):
         self._trajDataFeatures = trajDataFeatures

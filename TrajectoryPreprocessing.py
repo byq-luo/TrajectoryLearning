@@ -18,10 +18,26 @@ np.random.seed(2018)
 
 ###############################################################################
 def load_traj_data():
-    PATH = "..//Data//Original//TrajectoryDataOriginal.pkl"
+    PATH = "..//Data//Original//trajDataOriginal.pkl"
     ls = LoadSave(PATH)
     trajData = ls.load_data()
-    return trajData
+    return trajDatar
+
+def reshape_traj_data():
+    PATH = "..//Data//Original//trajAll.pkl"
+    ls = LoadSave(PATH)
+    trajData = ls.load_data()
+    
+    trajIndex = list(trajData.keys())
+    trajNewData = {}
+    for ind, item in enumerate(trajIndex):
+        traj = trajData[item]
+        traj.drop(["carNum", "maskTraj", "maskCrossTraj"], axis=1, inplace=True)
+        traj.rename(columns={"inCrossTraj": "IN", "unixTime":"globalTime"}, inplace=True)
+        traj["TIME"] = traj["globalTime"] - traj["globalTime"].iloc[0]
+        traj["TIME"] = traj["TIME"].dt.seconds + traj["TIME"].dt.microseconds/1000000
+        trajNewData[ind] = traj
+    return trajNewData
 
 class TrajectoryStopPoints(object):
     def __init__(self, trajData=None, save=False):
@@ -33,10 +49,12 @@ class TrajectoryStopPoints(object):
     def save_data(self, data=None, fileName=None):
         assert fileName, "Invalid file path !"
         self.__save_data(data, fileName)
+        
     def load_data(self, fileName=None):
         assert fileName, "Invalid file path !"
         data = self.__load_data(fileName)
         return data
+    
     def set_dbscan_param(self, eps=None, minSamples=None):
         assert eps and minSamples, "Wrong eps and minSamples parameter !"
         self.__set_dbscan_param(eps=eps, minSamples=minSamples)
@@ -47,6 +65,7 @@ class TrajectoryStopPoints(object):
         pickle.dump(data, f)
         f.close()
         print("--------------Saving successed !--------------\n")
+        
     def __load_data(self, fileName=None):
         print("--------------Start loading--------------")
         f = open(fileName, 'rb')
@@ -54,6 +73,7 @@ class TrajectoryStopPoints(object):
         f.close()
         print("--------------loading successed !--------------\n")
         return data
+    
     def __set_dbscan_param(self, eps=None, minSamples=None):
         self._eps = eps
         self._minSamples = minSamples
@@ -70,7 +90,7 @@ class TrajectoryStopPoints(object):
                 stopPtsTmp = self._trajData[item][stopPtsIndex!=-1].copy()
                 stopPtsTmp["index"] = item
                 stopPtsTmp["stopIndex"] = stopPtsIndex[stopPtsIndex!=-1]
-                self._trajStopPts = pd.concat([self._trajStopPts, stopPtsTmp], axis=0, ignore_index=True)
+                self._trajStopPts = pd.concat([self._trajStopPts, stopPtsTmp], ignore_index=True)
                 print("Stop points extraction :No {} and total is {}".format(ind+1, len(self._trajData)))
                 self._trajData[item]["stopIndex"] = stopPtsIndex
             else:
@@ -296,17 +316,18 @@ class TrajectoryFeatureExtract(object):
             return self._trajDataFeatures
 ###############################################################################
 if __name__ == "__main__":
-    trajData = load_traj_data()
-    '''
-    trajData = dict([(index, trajData[index]) for index in list(trajData.keys())[:100]])
-    stopExtractor = TrajectoryStopPoints(trajData=trajData, save=True)
-    stopExtractor.set_dbscan_param(eps=5, minSamples=40)
-    stopExtractor.extract_stop_points()
-    trajData = stopExtractor._trajData
+    trajData = reshape_traj_data()
+#    trajData = load_traj_data()
+    #trajData = dict([(index, trajData[index]) for index in list(trajData.keys())[:100]])
     
-    ls = LoadSave("..//Data//Original//TrajectoryDataTry.pkl")
-    ls.save_datasave_data(trajData)
-    '''
-    featureExtractor = TrajectoryFeatureExtract(trajData=trajData, save=True)
-    featureExtractor.extract_features()
-    trajDataFeatures = featureExtractor._trajDataFeatures
+#    stopExtractor = TrajectoryStopPoints(trajData=trajData, save=True)
+#    stopExtractor.set_dbscan_param(eps=5, minSamples=40)
+#    stopExtractor.extract_stop_points()
+#    trajData = stopExtractor._trajData
+#    
+#    ls = LoadSave("..//Data//Original//TrajectoryDataTry.pkl")
+#    ls.save_datasave_data(trajData)
+#    
+#    featureExtractor = TrajectoryFeatureExtract(trajData=trajData, save=True)
+#    featureExtractor.extract_features()
+#    trajDataFeatures = featureExtractor._trajDataFeatures
