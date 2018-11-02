@@ -21,8 +21,9 @@ def load_traj_data():
     PATH = "..//Data//Original//trajDataOriginal.pkl"
     ls = LoadSave(PATH)
     trajData = ls.load_data()
-    return trajDatar
+    return trajData
 
+# Reshape trajAll data file
 def reshape_traj_data():
     PATH = "..//Data//Original//trajAll.pkl"
     ls = LoadSave(PATH)
@@ -33,11 +34,14 @@ def reshape_traj_data():
     for ind, item in enumerate(trajIndex):
         traj = trajData[item]
         traj.drop(["carNum", "maskTraj", "maskCrossTraj"], axis=1, inplace=True)
-        traj.rename(columns={"inCrossTraj": "IN", "unixTime":"globalTime"}, inplace=True)
+        traj.rename(columns={"inCrossTraj": "IN", "globalTime":"globalTime"}, inplace=True)
         traj["TIME"] = traj["globalTime"] - traj["globalTime"].iloc[0]
         traj["TIME"] = traj["TIME"].dt.seconds + traj["TIME"].dt.microseconds/1000000
         trajNewData[ind] = traj
-    return trajNewData
+    
+    ls._fileName = "..//Data//Original//trajDataOriginal.pkl"
+    ls.save_data(trajNewData)
+    return
 
 class TrajectoryStopPoints(object):
     def __init__(self, trajData=None, save=False):
@@ -45,6 +49,10 @@ class TrajectoryStopPoints(object):
         self._trajDataIndex = list(trajData.keys())
         self._save = save
         self._trajStopPts = DataFrame(columns=list(self._trajData[self._trajDataIndex[0]].columns))
+        
+        # Initializing two more attributes
+        self._trajStopPts["trajIndex"] = None
+        self._trajStopPts["stopIndex"] = None
         
     def save_data(self, data=None, fileName=None):
         assert fileName, "Invalid file path !"
@@ -88,7 +96,7 @@ class TrajectoryStopPoints(object):
             if len(trajTmp) <= 15000:
                 stopPtsIndex = db.fit_predict(trajTmp)
                 stopPtsTmp = self._trajData[item][stopPtsIndex!=-1].copy()
-                stopPtsTmp["index"] = item
+                stopPtsTmp["trajIndex"] = item
                 stopPtsTmp["stopIndex"] = stopPtsIndex[stopPtsIndex!=-1]
                 self._trajStopPts = pd.concat([self._trajStopPts, stopPtsTmp], ignore_index=True)
                 print("Stop points extraction :No {} and total is {}".format(ind+1, len(self._trajData)))
@@ -97,7 +105,7 @@ class TrajectoryStopPoints(object):
                 self._trajData[item]["stopIndex"] = 0
                 print("Stop points extraction :No {} and total is {}".format(ind+1, len(self._trajData)))
         if self._save == True:
-            self.save_data(self._trajStopPts, "..//Data//Features//Original//TrajectoryDataStopPts.pkl")
+            self.save_data(self._trajStopPts, "..//Data//Original//TrajectoryDataStopPts.pkl")
 
 
 ###############################################################################
@@ -215,14 +223,14 @@ class TrajectoryFeatureExtract(object):
         if len(trajTmp) == 0:
             return np.nan
         else:
-            return trajTmp["unixTime"].iloc[0]
+            return trajTmp["globalTime"].iloc[0]
     
     def traj_leave_intersection_time(self, traj):
         trajTmp = traj[traj["IN"] == 1]
         if len(trajTmp) == 0:
             return np.nan
         else:
-            return trajTmp["unixTime"].iloc[-1]
+            return trajTmp["globalTime"].iloc[-1]
     
     @timefn
     def extract_features(self):
@@ -310,24 +318,22 @@ class TrajectoryFeatureExtract(object):
         self._trajDataFeatures["enterTime"] = pd.to_datetime(self._trajDataFeatures["enterTime"], errors='ignore')
         print("----------------------------------------------")
         if self._save == True:
-            self.save_data(self._trajDataFeatures, '..//Data//Original//TrajectoryDataFeatures.pkl')
+            self.save_data(self._trajDataFeatures, '..//Data//Original//trajDataOriginalFeatures.pkl')
             print("Save features sucessed !")
         else:
             return self._trajDataFeatures
 ###############################################################################
 if __name__ == "__main__":
-    trajData = reshape_traj_data()
-#    trajData = load_traj_data()
+    #trajData = load_traj_data()
     #trajData = dict([(index, trajData[index]) for index in list(trajData.keys())[:100]])
     
 #    stopExtractor = TrajectoryStopPoints(trajData=trajData, save=True)
 #    stopExtractor.set_dbscan_param(eps=5, minSamples=40)
 #    stopExtractor.extract_stop_points()
 #    trajData = stopExtractor._trajData
+#    ls = LoadSave("..//Data//Original//trajDataOriginal.pkl")
+#    ls.save_data(trajData)
 #    
-#    ls = LoadSave("..//Data//Original//TrajectoryDataTry.pkl")
-#    ls.save_datasave_data(trajData)
-#    
-#    featureExtractor = TrajectoryFeatureExtract(trajData=trajData, save=True)
-#    featureExtractor.extract_features()
-#    trajDataFeatures = featureExtractor._trajDataFeatures
+    featureExtractor = TrajectoryFeatureExtract(trajData=trajData, save=True)
+    featureExtractor.extract_features()
+    trajDataFeatures = featureExtractor._trajDataFeatures

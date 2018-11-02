@@ -27,11 +27,20 @@ background = load_background()
 ###############################################################################
 # Visualizing distribution of some features before and after feature-based noise filtering.
 def visualizing_before_filtering():
-    trajData = load_traj_data()
-    FEATURE_PATH = "..//Data//Original//TrajectoryDataFeatures.pkl"
+    # Loading original data
+    FEATURE_PATH = "..//Data//Original//trajDataOriginalFeatures.pkl"
+    TRAJDATA_PATH = "..//Data//original//trajDataOriginal.pkl"
+    
     ls = LoadSave(FEATURE_PATH)
     trajDataFeatures = ls.load_data()
-
+    
+    ls._fileName = TRAJDATA_PATH
+    trajData = ls.load_data()
+    
+    ###################################################
+    ###################################################
+    
+    # Basic feature plot
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["pointNums"], bins=50)
     plt.title("Distribution of number of points".format(trajDataFeatures["pointNums"].quantile(0.1)))
@@ -122,9 +131,9 @@ class FeatureBasedNoiseFilter():
     
 if __name__ == "__main__":
     ls = LoadSave()
-    ls._fileName = "..//Data//Original//TrajectoryDataOriginal.pkl"
+    ls._fileName = "..//Data//Original//trajDataOriginal.pkl"
     trajData = ls.load_data()
-    ls._fileName = "..//Data//Original//TrajectoryDataFeatures.pkl"
+    ls._fileName = "..//Data//Original//trajDataOriginalFeatures.pkl"
     trajDataFeatures = ls.load_data()
     
     nf = FeatureBasedNoiseFilter(trajDataFeatures=trajDataFeatures, save=True)
