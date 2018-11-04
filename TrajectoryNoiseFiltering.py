@@ -11,31 +11,24 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
 
 from sklearn.cluster import DBSCAN
-from sklearn.neighbors import NearestNeighbors
 from WeaponLibrary import LoadSave
 from WeaponLibrary import load_background
-from NoisyFilter import TrajectoryNoisyFilter
-from scipy.spatial import ConvexHull
 import gc
 np.random.seed(2018)
 # right : 2018
-sns.set(style="ticks", font_scale=1.2, color_codes=True)
+sns.set(style="ticks", font_scale=1.5, color_codes=True)
 background = load_background()
 ###############################################################################
 # Visualizing distribution of some features before and after feature-based noise filtering.
 def visualizing_before_filtering():
     # Loading original data
     FEATURE_PATH = "..//Data//Original//trajDataOriginalFeatures.pkl"
-    TRAJDATA_PATH = "..//Data//original//trajDataOriginal.pkl"
     
     ls = LoadSave(FEATURE_PATH)
     trajDataFeatures = ls.load_data()
-    
-    ls._fileName = TRAJDATA_PATH
-    trajData = ls.load_data()
     
     ###################################################
     ###################################################
@@ -43,48 +36,54 @@ def visualizing_before_filtering():
     # Basic feature plot
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["pointNums"], bins=50)
-    plt.title("Distribution of number of points".format(trajDataFeatures["pointNums"].quantile(0.1)))
+    plt.title("Distribution of the number of points".format(trajDataFeatures["pointNums"].quantile(0.1)))
     plt.savefig("..//Plots//NumberOfPointsDistribution.pdf", bbox_inches='tight')
     
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["totalTime"], bins=50)
-    plt.title("Distribution of total time".format(trajDataFeatures["totalTime"].quantile(0.1)))
+    plt.title("Distribution of the total time".format(trajDataFeatures["totalTime"].quantile(0.1)))
     plt.savefig("..//Plots//TotalTimeDistribution.pdf", bbox_inches='tight')
     
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["headTailDist"], bins=50)
-    plt.title("Distribution of head-tail-distance".format(trajDataFeatures["headTailDist"].quantile(0.1)))
+    plt.title("Distribution of the head-tail-distance".format(trajDataFeatures["headTailDist"].quantile(0.1)))
     plt.savefig("..//Plots//HeadTailDistanceDistribution.pdf", bbox_inches='tight')
     
     basicReport = trajDataFeatures.describe([0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 0.9, 0.999])
     
-    noisyFilter = TrajectoryNoisyFilter(trajData=trajData, save=True)
-    noisyFilter.set_feature_filter_param_lower_bound(headTailDist=10, pointNums=10, totalTime=2)
+    noisyFilter = FeatureBasedNoiseFilter(trajDataFeatures=trajDataFeatures)
+    noisyFilter.set_feature_filter_param_lower_bound(headTailDist=20, pointNums=20, totalTime=6)
     noisyFilter.set_feature_filter_param_upper_bound(headTailDist=20000, pointNums=20000, totalTime=20000)
-    noisyIndex = noisyFilter.feature_noisy_filter()
-    trajDataFeatures.drop(noisyIndex, axis=0, inplace=True)
+    noiseIndex, noiseCond = noisyFilter._feature_noisy_filter()
+    trajDataFeatures.drop(noiseIndex, axis=0, inplace=True)
+    
+    ###################################################
+    ###################################################
     
     print("Nums is {}".format(len(trajDataFeatures)))
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["pointNums"], bins=50)
-    plt.title("Distribution of number of points after filtering".format(trajDataFeatures["pointNums"].quantile(0.1)))
+    plt.title("Distribution of the number of points after filtering".format(trajDataFeatures["pointNums"].quantile(0.1)))
     plt.savefig("..//Plots//NumberOfPointsDistributionAfterFiltering.pdf", bbox_inches='tight')
     
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["totalTime"], bins=50)
-    plt.title("Distribution of total time after filtering".format(trajDataFeatures["totalTime"].quantile(0.1)))
+    plt.title("Distribution of the total time after filtering".format(trajDataFeatures["totalTime"].quantile(0.1)))
     plt.savefig("..//Plots//TotalTimeDistributionAfterFiltering.pdf", bbox_inches='tight')
     
     f, ax = plt.subplots(figsize=(8, 6))
     sns.distplot(trajDataFeatures["headTailDist"], bins=50)
-    plt.title("Distribution of head-tail-distance after filtering".format(trajDataFeatures["headTailDist"].quantile(0.1)))
+    plt.title("Distribution of the head-tail-distance after filtering".format(trajDataFeatures["headTailDist"].quantile(0.1)))
     plt.savefig("..//Plots//HeadTailDistanceDistributionAfterFiltering.pdf", bbox_inches='tight')
     plt.close("all")
+    del trajDataFeatures
+    gc.collect()
+    
     return basicReport
 
 ###############################################################################
 class FeatureBasedNoiseFilter():
-    def __init__(self, trajDataFeatures=None, save=False):
+    def __init__(self, trajDataFeatures=None):
         self._trajDataFeatures = trajDataFeatures
     
     def set_feature_filter_param_lower_bound(self, headTailDist=10, pointNums=10, totalTime=1):
@@ -130,22 +129,25 @@ class FeatureBasedNoiseFilter():
         return noiseIndex, noiseCond
     
 if __name__ == "__main__":
+    
     ls = LoadSave()
     ls._fileName = "..//Data//Original//trajDataOriginal.pkl"
     trajData = ls.load_data()
     ls._fileName = "..//Data//Original//trajDataOriginalFeatures.pkl"
     trajDataFeatures = ls.load_data()
     
-    nf = FeatureBasedNoiseFilter(trajDataFeatures=trajDataFeatures, save=True)
+#    visualizing_before_filtering()
+    nf = FeatureBasedNoiseFilter(trajDataFeatures=trajDataFeatures)
     nf.set_feature_filter_param_lower_bound(headTailDist=20, pointNums=20, totalTime=6)
     nf.set_feature_filter_param_upper_bound(headTailDist=2000, pointNums=20000, totalTime=20000)
     noiseIndex, noiseCond = nf._feature_noisy_filter()
     
     trajDataFeatures = trajDataFeatures[~noiseCond]
-    ls._fileName = "..//Data//Original//TrajectoryDataFeaturesAfterNoiseFiltering.pkl"
+    trajDataFeatures.reset_index(drop=True, inplace=True)
+    ls._fileName = "..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl"
     ls.save_data(trajDataFeatures)
     
     for ind in noiseIndex:
         trajData.pop(ind)
-    ls._fileName = "..//Data//Original//TrajectoryDataAfterNoiseFiltering.pkl"
+    ls._fileName = "..//Data//Original//trajDataAfterNoiseFiltering.pkl"
     ls.save_data(trajData)

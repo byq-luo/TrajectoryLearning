@@ -11,13 +11,12 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
+
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
-from WeaponLibrary import load_data
-from WeaponLibrary import save_data
+from WeaponLibrary import LoadSave
 from WeaponLibrary import load_background
-from NoisyFilter import TrajectoryNoisyFilter
 import pickle
 from scipy.spatial import ConvexHull
 import gc
@@ -29,6 +28,19 @@ background = load_background()
 def core_points_discovery():
     pass
 
+# Visualizing the start and end points of trajectories
+def plot_start_end_points(trajDataFeatures=None):
+    plt.figure()
+    plt.imshow(background)
+    plt.plot(trajDataFeatures["startX"], trajDataFeatures["startY"],
+             color='red', marker='.', linestyle=' ', markersize=1.2)
+    
+    plt.figure()
+    plt.imshow(background)
+    plt.plot(trajDataFeatures["endX"], trajDataFeatures["endY"],
+             color='red', marker='.', linestyle=' ', markersize=1.2)
+    
+    
 
 class InterestedRegionDiscovery(object):
     def __init__(self, trajDataFeatures=None, save=False):
@@ -51,8 +63,8 @@ class InterestedRegionDiscovery(object):
         return labels
     
     def _start_pts_noisy_filter(self, plotAll=False):
-        startPoints = self._trajDataFeatures[["trajIndex", "trajStartX", "trajStartY"]]
-        startCoordinates = startPoints[["trajStartX", "trajStartY"]].values
+        startPoints = self._trajDataFeatures[["trajIndex", "startX", "startY"]]
+        startCoordinates = startPoints[["startX", "startY"]].values
         corePointFlag = []
         
         # Fit Nearest Neighbors of start points dataset.
@@ -110,7 +122,7 @@ class InterestedRegionDiscovery(object):
         
         # Plot and save all results
         if plotAll == True:
-            convexHullPts = startPoints[(startPoints["corePointFlag"] == 1) & (startPoints["labels"] != -1)][["trajStartX", "trajStartY"]].values
+            convexHullPts = startPoints[(startPoints["corePointFlag"] == 1) & (startPoints["labels"] != -1)][["startX", "startY"]].values
             uniqueLabels = list(startPoints[startPoints["labels"] != -1]["labels"].unique())
             labels = startPoints[(startPoints["corePointFlag"] == 1) & (startPoints["labels"] != -1)]["labels"].values
             plt.figure()
@@ -148,15 +160,15 @@ class InterestedRegionDiscovery(object):
             
             plt.figure()
             plt.imshow(background)
-            normalPts = self._trajDataFeatures[self._trajDataFeatures["startBrokenFlag"] == False][["trajStartX", "trajStartY"]].values
+            normalPts = self._trajDataFeatures[self._trajDataFeatures["startBrokenFlag"] == False][["startX", "startY"]].values
             plt.plot(normalPts[:, 0], normalPts[:, 1], '.', markersize=1.5, color="red")
-            plt.title("Start normal total is {}".format(len(normalPts)))
+            plt.title("Start clusters after filtering")
             plt.savefig("..//Plots//EntryCorePointsAfterFiltering.pdf", dpi=700, bbox_inches='tight')
         return self._start
     
     def _end_pts_noisy_filter(self, plotAll=False):
-        endPoints = self._trajDataFeatures[["trajIndex", "trajEndX", "trajEndY"]]
-        endCoordinates = endPoints[["trajEndX", "trajEndY"]].values
+        endPoints = self._trajDataFeatures[["trajIndex", "endX", "endY"]]
+        endCoordinates = endPoints[["endX", "endY"]].values
         corePointFlag = []
         neigh = NearestNeighbors(n_neighbors=self._endMinSamples, n_jobs=1)
         neigh.fit(endCoordinates)
@@ -208,7 +220,7 @@ class InterestedRegionDiscovery(object):
             self._trajDataFeatures["endBrokenFlag"] = self._trajDataFeatures["endBrokenFlag"] | (endPoints["labels"] == ind)
         
         if plotAll == True:
-            convexHullPts = endPoints[(endPoints["corePointFlag"] == 1) & (endPoints["labels"] != -1)][["trajEndX", "trajEndY"]].values
+            convexHullPts = endPoints[(endPoints["corePointFlag"] == 1) & (endPoints["labels"] != -1)][["endX", "endY"]].values
             uniqueLabels = list(endPoints[endPoints["labels"] != -1]["labels"].unique())
             labels = endPoints[(endPoints["corePointFlag"] == 1) & (endPoints["labels"] != -1)]["labels"].values
             plt.figure()
@@ -247,8 +259,57 @@ class InterestedRegionDiscovery(object):
             
             plt.figure()
             plt.imshow(background)
-            normalPts = self._trajDataFeatures[self._trajDataFeatures["endBrokenFlag"] == False][["trajEndX", "trajEndY"]].values
+            normalPts = self._trajDataFeatures[self._trajDataFeatures["endBrokenFlag"] == False][["endX", "endY"]].values
             plt.plot(normalPts[:, 0], normalPts[:, 1], '.', markersize=1.5, color="red")
-            plt.title("End normal total is {}".format(len(normalPts)))
+            plt.title("End clusters after filtering")
             plt.savefig("..//Plots//ExitCorePointsAfterFiltering.pdf", dpi=700, bbox_inches='tight')
         return self._end
+    
+    def filtering(self):
+        self._start_pts_noisy_filter(plotAll=True)
+        self._end_pts_noisy_filter(plotAll=True)
+        self._trajDataFeatures["completeFlag"] = ~(self._trajDataFeatures["startBrokenFlag"] | self._trajDataFeatures["endBrokenFlag"])
+        
+        if self._save == True:
+            self.save_data(self._trajDataFeatures[self._trajDataFeatures["completeFlag"]==True], "..//Data//TrajectoryDataFeaturesComplete.pkl")
+            self.save_data(self._trajDataFeatures[self._trajDataFeatures["completeFlag"]==False], "..//Data//TrajectoryDataFeaturesBroken.pkl")
+
+        return self._trajDataFeatures
+    
+if __name__ == "__main__":
+    ls = LoadSave("..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl")
+    trajDataFeatures = ls.load_data()
+    
+    ls._fileName = "..//Data//Original//trajDataAfterNoiseFiltering.pkl"
+    trajData = ls.load_data()
+    
+    nf = InterestedRegionDiscovery(trajDataFeatures.copy())
+    nf.set_dbscan_start_param(alpha=0.80, eps=30, minSamples=95)
+    nf.set_dbscan_end_param(alpha=0.80, eps=55, minSamples=95)
+    
+    ls = LoadSave("..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl")
+    trajDataFeaturesNew = nf.filtering()
+    ls.save_data(trajDataFeaturesNew)
+    
+    # Extracting and saving the completed trajectory data
+    trajDataFeaturesCompleted = trajDataFeaturesNew[trajDataFeaturesNew["completeFlag"] == True]
+    trajDataFeaturesCompleted.reset_index(drop=True, inplace=True)
+    trajDataCompletedIndex = trajDataFeaturesCompleted["trajIndex"]
+    trajDataCompleted = dict([(int(index), trajData[index]) for index in trajDataCompletedIndex])
+    ls._fileName = "..//Data//Completed//trajDataFeaturesCompleted.pkl"
+    ls.save_data(trajDataFeaturesCompleted)
+    
+    ls._fileName = "..//Data//Completed//trajDataCompleted.pkl"
+    ls.save_data(trajDataCompleted)
+    
+    # Extracting and saving the broken trajectory data
+    trajDataFeaturesBroken = trajDataFeaturesNew[trajDataFeaturesNew["completeFlag"] == False]
+    trajDataFeaturesBroken.reset_index(drop=True, inplace=True)
+    trajDataBrokenIndex = trajDataFeaturesBroken["trajIndex"]
+    trajDataBroekn = dict([(int(index), trajData[index]) for index in trajDataBrokenIndex])
+    ls._fileName = "..//Data//Broken//trajDataFeaturesBroken.pkl"
+    ls.save_data(trajDataFeaturesCompleted)
+    
+    ls._fileName = "..//Data//Broken//trajDataBroken.pkl"
+    ls.save_data(trajDataBroekn)
+    

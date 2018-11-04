@@ -23,16 +23,23 @@ sns.set(style="ticks", font_scale=1.2, palette='dark', color_codes=True)
 background = load_background()
 from CBSMOT import CBSMOT
 ###############################################################################
-def load_data():
-    FEATURE_PATH = "..//Data//Original//TrajectoryDataFeatures.pkl"
-    TRAJDATA_PATH = "..//Data//trajAll.pkl"
-    
-    ls = LoadSave(FEATURE_PATH)
-    trajDataFeatures = ls.load_data()
-    ls._fileName = TRAJDATA_PATH
-    trajData = ls.load_data()
-    return trajData, trajDataFeatures
+ls = LoadSave(None)
+ls._fileName = "..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl"
+trajDataFeatures = ls.load_data()
+trajDataFeatures.reset_index(drop=True, inplace=True)
 
+def plot_start_end_points(trajDataFeatures=None):
+    plt.figure()
+    plt.imshow(background)
+    plt.plot(trajDataFeatures["startX"], trajDataFeatures["startY"], color='red', marker='.', linestyle=' ', markersize=1.2)
+    
+    plt.figure()
+    plt.imshow(background)
+    plt.plot(trajDataFeatures["endX"], trajDataFeatures["endY"], color='red', marker='.', linestyle=' ', markersize=1.2)
+
+plot_start_end_points(trajDataFeatures)
+
+'''
 def traj_angle_calculation(traj):
     trajLength = len(traj)
     
@@ -72,9 +79,9 @@ def traj_angle_calculation(traj):
     traj["angle"] = angle
     traj["angle"] = 180/pi * traj["angle"].values
     return angle
-        
+    
 if __name__ == "__main__":
     trajData, trajDataFeatures = load_data()
     #traj = trajData[4836]
     #angle = traj_angle_calculation(traj)
-    
+'''     

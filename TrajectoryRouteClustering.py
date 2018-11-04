@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['patch.force_edgecolor'] = True
 rcParams['patch.facecolor'] = 'b'
+
 import seaborn as sns
 import time
 import pickle
@@ -20,8 +21,6 @@ from WeaponLibrary import plot_list_traj
 from WeaponLibrary import timefn
 from WeaponLibrary import sampling_compression
 from WeaponLibrary import UnionFind
-from WeaponLibrary import load_data
-from WeaponLibrary import save_data
 from WeaponLibrary import LoadSave
 from numba import jit
 import gc
@@ -34,7 +33,7 @@ import multiprocessing
 import warnings
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
 
 np.random.seed(1)
 background = load_background()
@@ -48,10 +47,12 @@ class WindowCompression():
         assert data, "Invaild data !"
         assert fileName, "Invalid file path !"
         self.__save_data(data, fileName)
+        
     def load_data(self, fileName=None):
         assert fileName, "Invalid file path !"
         data = self.__load_data(fileName)
         return data
+    
     def set_compression_param(self, samplingNums=None):
         assert samplingNums, "Wrong sampling point nums !"
         self.__set_compression_param(samplingNums=samplingNums)
@@ -62,6 +63,7 @@ class WindowCompression():
         pickle.dump(data, f)
         f.close()
         print("--------------Saving successed !--------------\n")
+        
     def __load_data(self, fileName=None):
         print("--------------Start loading--------------")
         f = open(fileName, 'rb')
@@ -69,6 +71,7 @@ class WindowCompression():
         f.close()
         print("--------------loading successed !--------------\n")
         return data
+    
     def __set_compression_param(self, samplingNums):
         self._samplingNums = samplingNums
     
@@ -116,6 +119,7 @@ class WindowCompression():
             else:
                 self._trajDataCompressed[ind] = trajCompressedTmp
         return self._trajDataCompressed
+
 ###############################################################################
 class CreateLcssSimilarMatrix():
     def __init__(self, trajDataCompressed=None, fileName="..//Data//window_lcss", load=False):
@@ -132,10 +136,12 @@ class CreateLcssSimilarMatrix():
     def save_data(self, data=None, fileName=None):
         assert fileName, "Invalid file path !"
         self.__save_data(data, fileName)
+        
     def load_data(self, fileName=None):
         assert fileName, "Invalid file path !"
         data = self.__load_data(fileName)
         return data
+    
     def set_lcss_param(self, minDistCond=None, minPts=None):
         assert minDistCond and minPts, "Invalid, minDistCond and  minPts parameter !"
         self.__set_lcss_param(minDistCond, minPts)
@@ -146,6 +152,7 @@ class CreateLcssSimilarMatrix():
         pickle.dump(data, f)
         f.close()
         print("--------------Saving successed !--------------")
+        
     def __load_data(self, fileName=None):
         print("--------------Start loading...--------------")
         f = open(fileName, 'rb')
@@ -153,6 +160,7 @@ class CreateLcssSimilarMatrix():
         f.close()
         print("--------------loading successed !--------------")
         return data
+    
     def __set_lcss_param(self, minDistCond, minPts):
         self._minDistCond = minDistCond
         self._minPts = minPts
@@ -473,11 +481,13 @@ def extract_non_stop_traj_data(trajData):
 
 ###############################################################################
 if __name__ == "__main__":
-
-    trajData = load_data("..//Data//TrajectoryDataComplete.pkl")
-    trajDataFeatures = load_data("..//Data//TrajectoryDataFeaturesComplete.pkl")
+    ls = LoadSave("..//Data//Completed//trajDataCompleted.pkl")
+    trajData = ls.load_data("..//Data//TrajectoryDataComplete.pkl")
     
-    trajUsedNums = len(trajData)
+    ls._fileName = "..//Data//Completed//trajDataFeaturesCompleted.pkl"
+    trajDataFeatures = ls.load_data("..//Data//TrajectoryDataFeaturesComplete.pkl")
+    
+    trajUsedNums = 500
     trajData = dict([(index, trajData[index]) for index in list(trajData.keys())[:trajUsedNums]])
     trjDataFeaturesSlice = trajDataFeatures.iloc[:trajUsedNums]
     

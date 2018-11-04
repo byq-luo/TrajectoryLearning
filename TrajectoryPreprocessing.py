@@ -17,6 +17,31 @@ from sklearn.cluster import DBSCAN
 np.random.seed(2018)
 
 ###############################################################################
+def concat_different_files():
+    PATH = ["..//Data//Original//trajAll08001000.pkl",
+            "..//Data//Original//trajAll10001300.pkl",
+            "..//Data//Original//trajAll17001906.pkl"]
+    
+    trajData = {}
+    trajDataIndex = 0
+    ls = LoadSave(None)
+    
+    # trajDataIndex is the new index of each trajectory.
+    for ind, path in enumerate(PATH):
+        ls._fileName = path
+        trajDataTmp = ls.load_data()
+        trajDataTmpIndex = list(trajDataTmp.keys())
+        
+        for i in trajDataTmpIndex:
+            trajData[trajDataIndex] = trajDataTmp[i]
+            print("Trajectory data index: {}".format(trajDataIndex))
+            trajDataIndex += 1
+        gc.collect()
+    
+    ls._fileName = "..//Data//Original//trajDataAll.pkl"
+    ls.save_data(trajData)
+    return
+
 def load_traj_data():
     PATH = "..//Data//Original//trajDataOriginal.pkl"
     ls = LoadSave(PATH)
@@ -25,23 +50,29 @@ def load_traj_data():
 
 # Reshape trajAll data file
 def reshape_traj_data():
-    PATH = "..//Data//Original//trajAll.pkl"
+    PATH = "..//Data//Original//trajDataAll.pkl"
     ls = LoadSave(PATH)
     trajData = ls.load_data()
     
     trajIndex = list(trajData.keys())
     trajNewData = {}
+    
+    print("-----------------------------------")
+    print("Processing trajAll begins:")
     for ind, item in enumerate(trajIndex):
+        print("Now is {}, total is {}.".format(ind+1, len(trajIndex)))
         traj = trajData[item]
-        traj.drop(["carNum", "maskTraj", "maskCrossTraj"], axis=1, inplace=True)
-        traj.rename(columns={"inCrossTraj": "IN", "globalTime":"globalTime"}, inplace=True)
+        traj["boundingBoxSize"] = traj["W"] * traj["H"]
+        traj.drop(["carNum", "maskTraj", "maskCrossTraj", "W", "H"], axis=1, inplace=True)
+        traj.rename(columns={"inCrossTraj": "IN", "unixTime":"globalTime"}, inplace=True)
         traj["TIME"] = traj["globalTime"] - traj["globalTime"].iloc[0]
         traj["TIME"] = traj["TIME"].dt.seconds + traj["TIME"].dt.microseconds/1000000
         trajNewData[ind] = traj
-    
+        
     ls._fileName = "..//Data//Original//trajDataOriginal.pkl"
     ls.save_data(trajNewData)
     return
+###############################################################################
 
 class TrajectoryStopPoints(object):
     def __init__(self, trajData=None, save=False):
@@ -90,7 +121,7 @@ class TrajectoryStopPoints(object):
     def extract_stop_points(self):
         for ind, item in enumerate(self._trajDataIndex):
             trajTmp = self._trajData[item][["X", "Y"]].values
-            db = DBSCAN(eps=self._eps, min_samples=self._minSamples, n_jobs=-1)
+            db = DBSCAN(eps=self._eps, min_samples=self._minSamples, n_jobs=1)
             
             # Prevent some abnormal trajectories
             if len(trajTmp) <= 15000:
@@ -106,7 +137,6 @@ class TrajectoryStopPoints(object):
                 print("Stop points extraction :No {} and total is {}".format(ind+1, len(self._trajData)))
         if self._save == True:
             self.save_data(self._trajStopPts, "..//Data//Original//TrajectoryDataStopPts.pkl")
-
 
 ###############################################################################
 class TrajectoryFeatureExtract(object):
@@ -324,8 +354,7 @@ class TrajectoryFeatureExtract(object):
             return self._trajDataFeatures
 ###############################################################################
 if __name__ == "__main__":
-    #trajData = load_traj_data()
-    #trajData = dict([(index, trajData[index]) for index in list(trajData.keys())[:100]])
+    trajData = load_traj_data()
     
 #    stopExtractor = TrajectoryStopPoints(trajData=trajData, save=True)
 #    stopExtractor.set_dbscan_param(eps=5, minSamples=40)
