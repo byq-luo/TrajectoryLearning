@@ -42,6 +42,17 @@ def concat_different_files():
     ls.save_data(trajData)
     return
 
+#def add_time_traj_original():
+#    trajData = load_traj_data()
+#    ls = LoadSave("..//Data//Original//trajDataOriginal.pkl")
+#    trajDataIndex = list(trajData)
+#    
+#    print("Start processing time feature, add 8 hours:")
+#    for ind, item in enumerate(trajDataIndex):
+#        trajData[ind]["globalTime"] = trajData[ind]["globalTime"] + pd.DateOffset(hours=8)
+#        print("Now is {}, total is {}".format(ind, len(trajDataIndex)))
+#    ls.save_data(trajData)
+    
 def load_traj_data():
     PATH = "..//Data//Original//trajDataOriginal.pkl"
     ls = LoadSave(PATH)
@@ -72,8 +83,8 @@ def reshape_traj_data():
     ls._fileName = "..//Data//Original//trajDataOriginal.pkl"
     ls.save_data(trajNewData)
     return
-###############################################################################
 
+###############################################################################
 class TrajectoryStopPoints(object):
     def __init__(self, trajData=None, save=False):
         self._trajData = trajData
@@ -262,6 +273,12 @@ class TrajectoryFeatureExtract(object):
         else:
             return trajTmp["globalTime"].iloc[-1]
     
+    def traj_enter_scene_time(self, traj):
+        return traj["globalTime"].iloc[0]
+    
+    def traj_leave_scene_time(self, traj):
+        return traj["globalTime"].iloc[-1]
+    
     @timefn
     def extract_features(self):
         trajMovingDist = []
@@ -278,6 +295,8 @@ class TrajectoryFeatureExtract(object):
         trajTotalDistMean = []
         trajEnterTime = []
         trajLeaveTime = []
+        trajEnterSceneTime = []
+        trajLeaveSceneTime = []
         
         trajBoxSizeMax = []
         trajBoxSizeMin = []
@@ -305,6 +324,8 @@ class TrajectoryFeatureExtract(object):
             trajPtsNums.append(self.traj_pts_nums(traj))
             trajEnterTime.append(self.traj_enter_intersection_time(traj))
             trajLeaveTime.append(self.traj_leave_intersection_time(traj))
+            trajEnterSceneTime.append(self.traj_enter_scene_time(traj))
+            trajLeaveSceneTime.append(self.traj_leave_scene_time(traj))
             
             trajMovingDistMean.append(self.traj_moving_dist_mean(traj))
             trajTotalDistMean.append(self.traj_total_dist_mean(traj))
@@ -318,7 +339,7 @@ class TrajectoryFeatureExtract(object):
             trajStartY.append(trajStartYTmp)
             trajEndX.append(trajEndXTmp)
             trajEndY.append(trajEndYTmp)
-        
+            
         self._trajDataFeatures = {"trajIndex":self._trajIndex,
                                   "movingDist":trajMovingDist,
                                   "movingComplexity":trajMovingComplexity,
@@ -334,9 +355,11 @@ class TrajectoryFeatureExtract(object):
                                   "boxSizeMin":trajBoxSizeMin,
                                   "movingDistMean":trajMovingDistMean,
                                   "totalDistMean":trajTotalDistMean,
-                                  "enterTime":trajEnterTime,
-                                  "leaveTime":trajLeaveTime,
-                                  
+                                  "enterInterTime":trajEnterTime,
+                                  "leaveInterTime":trajLeaveTime,
+                                  "enterSceneTime":trajEnterSceneTime,
+                                  "leaveSceneTime":trajLeaveSceneTime,
+                                      
                                   "totalDist":trajTotalDist,
                                   "startX":trajStartX,
                                   "startY":trajStartY,
@@ -344,8 +367,8 @@ class TrajectoryFeatureExtract(object):
                                   "endY":trajEndY}
         self._trajDataFeatures = DataFrame(self._trajDataFeatures)
         
-        self._trajDataFeatures["leaveTime"] = pd.to_datetime(self._trajDataFeatures["leaveTime"], errors='ignore')
-        self._trajDataFeatures["enterTime"] = pd.to_datetime(self._trajDataFeatures["enterTime"], errors='ignore')
+        self._trajDataFeatures["leaveInterTime"] = pd.to_datetime(self._trajDataFeatures["leaveInterTime"], errors='ignore')
+        self._trajDataFeatures["enterInterTime"] = pd.to_datetime(self._trajDataFeatures["enterInterTime"], errors='ignore')
         print("----------------------------------------------")
         if self._save == True:
             self.save_data(self._trajDataFeatures, '..//Data//Original//trajDataOriginalFeatures.pkl')
@@ -354,15 +377,15 @@ class TrajectoryFeatureExtract(object):
             return self._trajDataFeatures
 ###############################################################################
 if __name__ == "__main__":
-    trajData = load_traj_data()
-    
+
 #    stopExtractor = TrajectoryStopPoints(trajData=trajData, save=True)
 #    stopExtractor.set_dbscan_param(eps=5, minSamples=40)
 #    stopExtractor.extract_stop_points()
 #    trajData = stopExtractor._trajData
 #    ls = LoadSave("..//Data//Original//trajDataOriginal.pkl")
 #    ls.save_data(trajData)
-#    
+    
+    trajData = load_traj_data()
     featureExtractor = TrajectoryFeatureExtract(trajData=trajData, save=True)
     featureExtractor.extract_features()
     trajDataFeatures = featureExtractor._trajDataFeatures

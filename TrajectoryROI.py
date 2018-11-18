@@ -25,23 +25,21 @@ np.random.seed(2018)
 sns.set(style="ticks", font_scale=1.2, color_codes=True)
 background = load_background()
 ###############################################################################
-def core_points_discovery():
-    pass
-
 # Visualizing the start and end points of trajectories
 def plot_start_end_points(trajDataFeatures=None):
     plt.figure()
     plt.imshow(background)
     plt.plot(trajDataFeatures["startX"], trajDataFeatures["startY"],
-             color='red', marker='.', linestyle=' ', markersize=1.2)
+             color='red', marker='+', linestyle=' ', markersize=0.3)
+    plt.savefig("..//Plots//EntryPoints.pdf", dpi=700, bbox_inches='tight')
     
     plt.figure()
     plt.imshow(background)
     plt.plot(trajDataFeatures["endX"], trajDataFeatures["endY"],
-             color='red', marker='.', linestyle=' ', markersize=1.2)
+             color='red', marker='+', linestyle=' ', markersize=0.3)
+    plt.savefig("..//Plots//ExitPoints.pdf", dpi=700, bbox_inches='tight')
+    plt.close("all")
     
-    
-
 class InterestedRegionDiscovery(object):
     def __init__(self, trajDataFeatures=None, save=False):
         self._trajDataFeatures = trajDataFeatures
@@ -133,8 +131,8 @@ class InterestedRegionDiscovery(object):
                 tmp = convexHullPts[index]
                 hull = ConvexHull(tmp)
                 for simplex in  hull.simplices:
-                    plt.plot(tmp[simplex, 0], tmp[simplex, 1], 'k-', linewidth=0.7)
-                plt.plot(convexHullPts[index, 0], convexHullPts[index, 1], '.', markersize=1.5, color="red")#RGB[ind])
+                    plt.plot(tmp[simplex, 0], tmp[simplex, 1], 'k-', linewidth=0.9)
+                plt.plot(convexHullPts[index, 0], convexHullPts[index, 1], '+', markersize=0.3, color="red")#RGB[ind])
                 pos = convexHullPts[index][2] - 40
                 d = len(convexHullPts[index, 0])/hull.area
                 d = round(d, 3)
@@ -161,7 +159,7 @@ class InterestedRegionDiscovery(object):
             plt.figure()
             plt.imshow(background)
             normalPts = self._trajDataFeatures[self._trajDataFeatures["startBrokenFlag"] == False][["startX", "startY"]].values
-            plt.plot(normalPts[:, 0], normalPts[:, 1], '.', markersize=1.5, color="red")
+            plt.plot(normalPts[:, 0], normalPts[:, 1], '+', markersize=0.3, color="red")
             plt.title("Start clusters after filtering")
             plt.savefig("..//Plots//EntryCorePointsAfterFiltering.pdf", dpi=700, bbox_inches='tight')
         return self._start
@@ -231,8 +229,8 @@ class InterestedRegionDiscovery(object):
                 tmp = convexHullPts[index]
                 hull = ConvexHull(tmp)
                 for simplex in  hull.simplices:
-                    plt.plot(tmp[simplex, 0], tmp[simplex, 1], 'k-', linewidth=0.7)
-                plt.plot(convexHullPts[index, 0], convexHullPts[index, 1], '.', markersize=1.5, color="red")#RGB[ind])
+                    plt.plot(tmp[simplex, 0], tmp[simplex, 1], 'k-', linewidth=0.9)
+                plt.plot(convexHullPts[index, 0], convexHullPts[index, 1], '+', markersize=0.3, color="red")#RGB[ind])
                 pos = convexHullPts[index][2] - 40
                 d = len(convexHullPts[index, 0])/hull.area
                 d = round(d, 3)
@@ -260,35 +258,36 @@ class InterestedRegionDiscovery(object):
             plt.figure()
             plt.imshow(background)
             normalPts = self._trajDataFeatures[self._trajDataFeatures["endBrokenFlag"] == False][["endX", "endY"]].values
-            plt.plot(normalPts[:, 0], normalPts[:, 1], '.', markersize=1.5, color="red")
+            plt.plot(normalPts[:, 0], normalPts[:, 1], '+', markersize=0.3, color="red")
             plt.title("End clusters after filtering")
             plt.savefig("..//Plots//ExitCorePointsAfterFiltering.pdf", dpi=700, bbox_inches='tight')
         return self._end
     
     def filtering(self):
-        self._start_pts_noisy_filter(plotAll=True)
-        self._end_pts_noisy_filter(plotAll=True)
+        startStatus = self._start_pts_noisy_filter(plotAll=True)
+        endStatus = self._end_pts_noisy_filter(plotAll=True)
         self._trajDataFeatures["completeFlag"] = ~(self._trajDataFeatures["startBrokenFlag"] | self._trajDataFeatures["endBrokenFlag"])
         
         if self._save == True:
             self.save_data(self._trajDataFeatures[self._trajDataFeatures["completeFlag"]==True], "..//Data//TrajectoryDataFeaturesComplete.pkl")
             self.save_data(self._trajDataFeatures[self._trajDataFeatures["completeFlag"]==False], "..//Data//TrajectoryDataFeaturesBroken.pkl")
 
-        return self._trajDataFeatures
+        return self._trajDataFeatures, startStatus, endStatus
     
 if __name__ == "__main__":
-    ls = LoadSave("..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl")
+    # Load data from training file.
+    ls = LoadSave("..//Data//TrainData//AllData//trajDataTrainFeatures.pkl")
     trajDataFeatures = ls.load_data()
     
-    ls._fileName = "..//Data//Original//trajDataAfterNoiseFiltering.pkl"
+    ls._fileName = "..//Data//TrainData//AllData//trajDataTrain.pkl"
     trajData = ls.load_data()
     
     nf = InterestedRegionDiscovery(trajDataFeatures.copy())
     nf.set_dbscan_start_param(alpha=0.80, eps=30, minSamples=95)
     nf.set_dbscan_end_param(alpha=0.80, eps=55, minSamples=95)
     
-    ls = LoadSave("..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl")
-    trajDataFeaturesNew = nf.filtering()
+    trajDataFeaturesNew, startStatus, endStatus = nf.filtering()
+    ls = LoadSave("..//Data//TrainData//AllData//trajDataTrainFeatures.pkl")
     ls.save_data(trajDataFeaturesNew)
     
     # Extracting and saving the completed trajectory data
@@ -296,20 +295,29 @@ if __name__ == "__main__":
     trajDataFeaturesCompleted.reset_index(drop=True, inplace=True)
     trajDataCompletedIndex = trajDataFeaturesCompleted["trajIndex"]
     trajDataCompleted = dict([(int(index), trajData[index]) for index in trajDataCompletedIndex])
-    ls._fileName = "..//Data//Completed//trajDataFeaturesCompleted.pkl"
+    ls._fileName = "..//Data//TrainData//Completed//trajDataFeaturesCompleted.pkl"
     ls.save_data(trajDataFeaturesCompleted)
     
-    ls._fileName = "..//Data//Completed//trajDataCompleted.pkl"
+    ls._fileName = "..//Data//TrainData//Completed//trajDataCompleted.pkl"
     ls.save_data(trajDataCompleted)
+    print("Completed trajectories nums :{}".format(len(trajDataCompleted)))
+    
+#    featureIndexSet = set(list(trajDataFeaturesCompleted["trajIndex"]))
+#    trajIndexSet = set(list(trajDataCompleted.keys()))
+#    print(featureIndexSet.difference(trajIndexSet))
     
     # Extracting and saving the broken trajectory data
     trajDataFeaturesBroken = trajDataFeaturesNew[trajDataFeaturesNew["completeFlag"] == False]
     trajDataFeaturesBroken.reset_index(drop=True, inplace=True)
     trajDataBrokenIndex = trajDataFeaturesBroken["trajIndex"]
     trajDataBroekn = dict([(int(index), trajData[index]) for index in trajDataBrokenIndex])
-    ls._fileName = "..//Data//Broken//trajDataFeaturesBroken.pkl"
-    ls.save_data(trajDataFeaturesCompleted)
+    ls._fileName = "..//Data//TrainData//Broken//trajDataFeaturesBroken.pkl"
+    ls.save_data(trajDataFeaturesBroken)
     
-    ls._fileName = "..//Data//Broken//trajDataBroken.pkl"
+    ls._fileName = "..//Data//TrainData//Broken//trajDataBroken.pkl"
     ls.save_data(trajDataBroekn)
+    print("Broken trajectories nums :{}".format(len(trajDataBroekn)))
     
+#    featureIndexSet = set(list(trajDataFeaturesBroken["trajIndex"]))
+#    trajIndexSet = set(list(trajDataBroekn.keys()))
+#    print(featureIndexSet.difference(trajIndexSet))

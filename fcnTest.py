@@ -22,22 +22,93 @@ np.random.seed(1)
 sns.set(style="ticks", font_scale=1.2, palette='dark', color_codes=True)
 background = load_background()
 from CBSMOT import CBSMOT
-###############################################################################
-ls = LoadSave(None)
-ls._fileName = "..//Data//Original//trajDataFeaturesAfterNoiseFiltering.pkl"
-trajDataFeatures = ls.load_data()
-trajDataFeatures.reset_index(drop=True, inplace=True)
-
-def plot_start_end_points(trajDataFeatures=None):
-    plt.figure()
-    plt.imshow(background)
-    plt.plot(trajDataFeatures["startX"], trajDataFeatures["startY"], color='red', marker='.', linestyle=' ', markersize=1.2)
+################################################################################
+#ls = LoadSave(None)
+#ls._fileName = "..//Data//TrainData//Completed//trajDataCompleted.pkl"
+#trajData = ls.load_data()
+from sklearn.neighbors import BallTree
+@timefn
+def compute_dist_min(traj_1, traj_2):
+    if len(traj_1) <= len(traj_2):
+        tree = BallTree(traj_1, leaf_size=len(traj_1))
+        flag = 1
+    else:
+        tree = BallTree(traj_2, leaf_size=len(traj_2))
+        flag = 2
     
-    plt.figure()
-    plt.imshow(background)
-    plt.plot(trajDataFeatures["endX"], trajDataFeatures["endY"], color='red', marker='.', linestyle=' ', markersize=1.2)
+    distMin = np.inf
+    p1_ind = None
+    p2_ind = None
+    if flag == 1:
+        for ind_2 in range(len(traj_2)):
+            coord = traj_2[ind_2, :].reshape(1, 2)
+            distTmp, ind_1 = tree.query(coord)
+            if distTmp < distMin:
+                distMin = distTmp
+                p1_ind = ind_1[0][0]
+                p2_ind = ind_2
+    else:
+        for ind_1 in range(len(traj_1)):
+            coord = traj_1[ind_1, :].reshape(1, 2)
+            distTmp, ind_2 = tree.query(coord)
+            if distTmp < distMin:
+                distMin = distTmp
+                p1_ind = ind_1
+                p2_ind = ind_2[0][0]
+    return p1_ind, p2_ind, distMin[0][0]
 
-plot_start_end_points(trajDataFeatures)
+@timefn
+def compute_dist_max(traj_1, traj_2):
+    if len(traj_1) >= len(traj_2):
+        tree = BallTree(traj_1, leaf_size=len(traj_1))
+        flag = 1
+    else:
+        tree = BallTree(traj_2, leaf_size=len(traj_2))
+        flag = 2
+    
+    distMin = np.inf
+    p1_ind = None
+    p2_ind = None
+    if flag == 1:
+        for ind_2 in range(len(traj_2)):
+            coord = traj_2[ind_2, :].reshape(1, 2)
+            distTmp, ind_1 = tree.query(coord)
+            if distTmp < distMin:
+                distMin = distTmp
+                p1_ind = ind_1[0][0]
+                p2_ind = ind_2
+    else:
+        for ind_1 in range(len(traj_1)):
+            coord = traj_1[ind_1, :].reshape(1, 2)
+            distTmp, ind_2 = tree.query(coord)
+            if distTmp < distMin:
+                distMin = distTmp
+                p1_ind = ind_1
+                p2_ind = ind_2[0][0]
+    return p1_ind, p2_ind, distMin[0][0]
+
+@timefn
+def brute_compute_closest_distance(traj_1, traj_2):
+    distMin = np.inf
+    traj_1_length = len(traj_1)
+    traj_2_length = len(traj_2)
+    
+    for ind_1 in range(traj_1_length):
+        coord_1 = traj_1[ind_1, :]
+        for ind_2 in range(traj_2_length):
+            coord_2 = traj_2[ind_2, :]
+            distTmp = np.sqrt( np.sum( np.square(coord_1 - coord_2) ) )
+            if distTmp < distMin:
+                distMin = distTmp
+                p1_index, p2_index = ind_1, ind_2
+    return p1_index, p2_index, distMin
+
+trajIndex = list(trajData.keys())
+traj_1 = trajData[29][["X", "Y"]].values
+traj_2 = trajData[11][["X", "Y"]].values
+p1, p2, dist = compute_dist_min(traj_1, traj_2)
+p1, p2, dist = compute_dist_max(traj_1, traj_2)
+p1_brute, p2_brute, dist_brute = brute_compute_closest_distance(traj_1, traj_2)
 
 '''
 def traj_angle_calculation(traj):
